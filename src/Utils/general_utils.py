@@ -18,6 +18,7 @@ import numpy as np
 import os
 import pathlib
 import pandas as pd
+import random
 import joblib
 import matplotlib.pyplot as plt
 from albumentations import (HorizontalFlip, Blur, VerticalFlip, Transpose, RandomCrop, 
@@ -79,20 +80,6 @@ def get_labels(dataset, split, img_spec='std'):
     
     return labels
 
-def get_module(length=50, width=1):
-    lengths = [50, 101, 152]
-    widths = [1,3,4]
-    
-    if(length not in lengths or width not in widths):
-        msg = "Length should be in "+lengths+"and width should be in "+widths
-        return msg
-    
-    base_url = 'https://tfhub.dev/google/bit/'
-    model_url = base_url+'m-r'+str(length)+'x'+str(width)+'/1'
-    print(model_url)
-
-    module = hub.KerasLayer(model_url)
-    return module
 
 def augment(aug, image):
     aug_image = aug(image=image)['image']
@@ -141,42 +128,32 @@ def get_balanced_data(x,y,shuffle=True):
             
     return x,y
 
-def plot_acc(history):
-    plt.plot(history.history['accuracy'])
-    plt.plot(history.history['val_accuracy'])
-    plt.title('Train vs Validation Accuracy')
+def plot_acc(history, key1, key2, val_present):
+    plt.plot(history.history[key1])
+    if(val_present):
+        plt.plot(history.history[key2])
+        plt.title('Train vs Validation Accuracy')
+        plt.legend(['Train', 'Validation'], loc='upper left')
+    else:
+        plt.title('Train Accuracy')
+        plt.legend(['train'], loc='upper left')
+        
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
-    plt.legend(['train', 'validation'], loc='upper left')
+    
     plt.show()
     
-def plot_loss(history):
+def plot_loss(history, key1, key2, val_present):
     plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Train vs Validation Loss')
+    if(val_present):
+        plt.plot(history.history['val_loss'])
+        plt.title('Train vs Validation Loss')
+        plt.legend(['Train', 'Validation'], loc='upper left')
+    else:
+        plt.title('Train Loss')
+        plt.legend(['Train'], loc='upper left')
+        
     plt.ylabel('loss')
     plt.xlabel('epoch')
-    plt.legend(['Train', 'Validation'], loc='upper left')
+    
     plt.show()
-
-def init_params(data_len, img_size):
-    momentum=0.9
-    BATCH_SIZE=512
-    lr = 0.003 * BATCH_SIZE / 512
-    STEPS_PER_EPOCH = 10
-        
-    if(data_len<20000):
-        SCHEDULE_LENGTH=500
-        SCHEDULE_BOUNDARIES = [200, 300, 400]
-    elif(data_len>=20000 and data_len<50000):
-        SCHEDULE_LENGTH=10000
-        SCHEDULE_BOUNDARIES = [3000, 6000, 9000]
-    else:
-        SCHEDULE_LENGTH = 20000
-        SCHEDULE_BOUNDARIES = [6000, 12000, 18000]
-    
-    SCHEDULE_LENGTH = SCHEDULE_LENGTH * 512 / BATCH_SIZE
-    SCHEDULE_BOUNDARIES = [int(0.3*SCHEDULE_LENGTH), int(0.6*SCHEDULE_LENGTH), int(0.9*SCHEDULE_LENGTH)]
-    
-    return momentum, BATCH_SIZE, lr, STEPS_PER_EPOCH, SCHEDULE_LENGTH, SCHEDULE_BOUNDARIES
-
